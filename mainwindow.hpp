@@ -21,15 +21,15 @@ public:
     ~MainWindow();
 
 private:
-    Ui::MainWindow *ui;
+    Ui::MainWindow *_ui;
 
 private slots:
     void about();
 
 private:
     void showError(const QSqlError &err);
-    QSqlRelationalTableModel *model;
-    int authorIdx, genreIdx;
+    QSqlRelationalTableModel *_model;
+    int _authorIdx, _genreIdx;
 
     void createMenuBar();
 };

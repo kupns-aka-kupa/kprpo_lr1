@@ -1,5 +1,10 @@
 #include "init.hpp"
 
+QLatin1String operator""_QL(const char *p, size_t s)
+{
+    return QLatin1String(p, s);
+}
+
 void addBook(QSqlQuery &q, const QString &title, int year, const QVariant &authorId,
              const QVariant &genreId, int rating)
 {
@@ -27,16 +32,16 @@ QVariant addAuthor(QSqlQuery &q, const QString &name, QDate birthdate)
 }
 
 const auto BOOKS_SQL = QLatin1String(R"(
-    create table books(id integer primary key, title varchar, author integer,
+    create table books(id serial primary key, title varchar, author integer,
                        genre integer, year integer, rating integer)
     )");
 
 const auto AUTHORS_SQL =  QLatin1String(R"(
-    create table authors(id integer primary key, name varchar, birthdate date)
+    create table authors(id serial primary key, name varchar, birthdate date)
     )");
 
 const auto GENRES_SQL = QLatin1String(R"(
-    create table genres(id integer primary key, name varchar)
+    create table genres(id serial primary key, name varchar)
     )");
 
 const auto INSERT_AUTHOR_SQL = QLatin1String(R"(
@@ -52,26 +57,32 @@ const auto INSERT_GENRE_SQL = QLatin1String(R"(
     insert into genres(name) values(?)
     )");
 
+const auto ConnectionString = QString("User ID=postgres;Password=postgres;Host=localhost;Port=5432;Database=\"%0\";")
+        .arg(PROJECT_NAME);
+
 QSqlError initDb()
 {
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName(":memory:");
+    QSqlDatabase db = QSqlDatabase::addDatabase("QPSQL");
+    db.setHostName("localhost");
+    db.setDatabaseName(PROJECT_NAME);
+    db.setUserName("postgres");
+    db.setPassword("postgres");
 
     if (!db.open())
         return db.lastError();
 
-    QStringList tables = db.tables();
-    if (tables.contains("books", Qt::CaseInsensitive)
-        && tables.contains("authors", Qt::CaseInsensitive))
-        return QSqlError();
-
     QSqlQuery q;
-    if (!q.exec(BOOKS_SQL))
-        return q.lastError();
-    if (!q.exec(AUTHORS_SQL))
-        return q.lastError();
-    if (!q.exec(GENRES_SQL))
-        return q.lastError();
+    QStringList tables = db.tables();
+    q.exec( "create extension if not exists \"uuid-ossp\";");
+
+    if (!tables.contains("books", Qt::CaseInsensitive)
+    && !q.exec(BOOKS_SQL)) return q.lastError();
+
+    if(!tables.contains("authors", Qt::CaseInsensitive)
+    && !q.exec(AUTHORS_SQL)) return q.lastError();
+
+    if(!tables.contains("authors", Qt::CaseInsensitive)
+    && !q.exec(GENRES_SQL)) return q.lastError();
 
     if (!q.prepare(INSERT_AUTHOR_SQL))
         return q.lastError();

@@ -3,9 +3,9 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
+    , _ui(new Ui::MainWindow)
 {
-    ui->setupUi(this);
+    _ui->setupUi(this);
 
     if (!QSqlDatabase::drivers().contains("QSQLITE"))
         QMessageBox::critical(
@@ -20,62 +20,62 @@ MainWindow::MainWindow(QWidget *parent)
         return;
     }
 
-    model = new QSqlRelationalTableModel(ui->bookTable);
-    model->setEditStrategy(QSqlTableModel::OnManualSubmit);
-    model->setTable("books");
+    _model = new QSqlRelationalTableModel(_ui->bookTable);
+    _model->setEditStrategy(QSqlTableModel::OnManualSubmit);
+    _model->setTable("books");
 
-    authorIdx = model->fieldIndex("author");
-    genreIdx = model->fieldIndex("genre");
+    _authorIdx = _model->fieldIndex("author");
+    _genreIdx = _model->fieldIndex("genre");
 
-    model->setRelation(authorIdx, QSqlRelation("authors", "id", "name"));
-    model->setRelation(genreIdx, QSqlRelation("genres", "id", "name"));
+    _model->setRelation(_authorIdx, QSqlRelation("authors", "id", "name"));
+    _model->setRelation(_genreIdx, QSqlRelation("genres", "id", "name"));
 
-    model->setHeaderData(authorIdx, Qt::Horizontal, tr("Author Name"));
-    model->setHeaderData(genreIdx, Qt::Horizontal, tr("Genre"));
-    model->setHeaderData(model->fieldIndex("title"),
-                         Qt::Horizontal, tr("Title"));
-    model->setHeaderData(model->fieldIndex("year"), Qt::Horizontal, tr("Year"));
-    model->setHeaderData(model->fieldIndex("rating"),
-                         Qt::Horizontal, tr("Rating"));
+    _model->setHeaderData(_authorIdx, Qt::Horizontal, tr("Author Name"));
+    _model->setHeaderData(_genreIdx, Qt::Horizontal, tr("Genre"));
+    _model->setHeaderData(_model->fieldIndex("title"),
+                          Qt::Horizontal, tr("Title"));
+    _model->setHeaderData(_model->fieldIndex("year"), Qt::Horizontal, tr("Year"));
+    _model->setHeaderData(_model->fieldIndex("rating"),
+                          Qt::Horizontal, tr("Rating"));
 
-    if (!model->select()) {
-        showError(model->lastError());
+    if (!_model->select()) {
+        showError(_model->lastError());
         return;
     }
 
-    ui->bookTable->setModel(model);
-    ui->bookTable->setItemDelegate(new BookDelegate(ui->bookTable));
-    ui->bookTable->setColumnHidden(model->fieldIndex("id"), true);
-    ui->bookTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    _ui->bookTable->setModel(_model);
+    _ui->bookTable->setItemDelegate(new BookDelegate(_ui->bookTable));
+    _ui->bookTable->setColumnHidden(_model->fieldIndex("id"), true);
+    _ui->bookTable->setSelectionMode(QAbstractItemView::SingleSelection);
 
-    ui->authorEdit->setModel(model->relationModel(authorIdx));
-    ui->authorEdit->setModelColumn(
-           model->relationModel(authorIdx)->fieldIndex("name"));
+    _ui->authorEdit->setModel(_model->relationModel(_authorIdx));
+    _ui->authorEdit->setModelColumn(
+            _model->relationModel(_authorIdx)->fieldIndex("name"));
 
-    ui->genreEdit->setModel(model->relationModel(genreIdx));
-    ui->genreEdit->setModelColumn(
-           model->relationModel(genreIdx)->fieldIndex("name"));
+    _ui->genreEdit->setModel(_model->relationModel(_genreIdx));
+    _ui->genreEdit->setModelColumn(
+            _model->relationModel(_genreIdx)->fieldIndex("name"));
 
-    ui->bookTable->horizontalHeader()->setSectionResizeMode(
-            model->fieldIndex("rating"),
+    _ui->bookTable->horizontalHeader()->setSectionResizeMode(
+            _model->fieldIndex("rating"),
             QHeaderView::ResizeToContents);
 
     QDataWidgetMapper *mapper = new QDataWidgetMapper(this);
-    mapper->setModel(model);
+    mapper->setModel(_model);
     mapper->setItemDelegate(new BookDelegate(this));
-    mapper->addMapping(ui->titleEdit, model->fieldIndex("title"));
-    mapper->addMapping(ui->yearEdit, model->fieldIndex("year"));
-    mapper->addMapping(ui->authorEdit, authorIdx);
-    mapper->addMapping(ui->genreEdit, genreIdx);
-    mapper->addMapping(ui->ratingEdit, model->fieldIndex("rating"));
+    mapper->addMapping(_ui->titleEdit, _model->fieldIndex("title"));
+    mapper->addMapping(_ui->yearEdit, _model->fieldIndex("year"));
+    mapper->addMapping(_ui->authorEdit, _authorIdx);
+    mapper->addMapping(_ui->genreEdit, _genreIdx);
+    mapper->addMapping(_ui->ratingEdit, _model->fieldIndex("rating"));
 
-    connect(ui->bookTable->selectionModel(),
+    connect(_ui->bookTable->selectionModel(),
             &QItemSelectionModel::currentRowChanged,
             mapper,
             &QDataWidgetMapper::setCurrentModelIndex
     );
 
-    ui->bookTable->setCurrentIndex(model->index(0, 0));
+    _ui->bookTable->setCurrentIndex(_model->index(0, 0));
     createMenuBar();
 }
 
@@ -112,6 +112,6 @@ void MainWindow::about()
 
 MainWindow::~MainWindow()
 {
-    delete ui;
+    delete _ui;
 }
 
