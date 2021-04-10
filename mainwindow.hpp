@@ -6,8 +6,9 @@
 #include <QtSql>
 
 #include "init.hpp"
+#include "bookwidget.hpp"
+#include "issuewidget.hpp"
 #include "tableeditor.hpp"
-#include "bookdelegate.hpp"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -29,8 +30,6 @@ private slots:
 
 private:
     void showError(const QSqlError &err);
-    QSqlRelationalTableModel *_model;
-    int _authorIdx, _genreIdx;
 
     void createMenuBar();
 };

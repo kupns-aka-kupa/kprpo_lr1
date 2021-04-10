@@ -154,9 +154,6 @@ QSqlError initDb()
     QStringList tables = db.tables();
     q.exec( "create extension if not exists \"uuid-ossp\";");
 
-    if(!tables.contains("issues", Qt::CaseInsensitive)
-       && !q.exec(ISSUES_SQL)) return q.lastError();
-
     if(!tables.contains("statuses", Qt::CaseInsensitive)
        && !q.exec(STATUSES_SQL)) return q.lastError();
 
@@ -171,6 +168,9 @@ QSqlError initDb()
 
     if (!tables.contains("books", Qt::CaseInsensitive)
     && !q.exec(BOOKS_SQL)) return q.lastError();
+
+    if(!tables.contains("issues", Qt::CaseInsensitive)
+       && !q.exec(ISSUES_SQL)) return q.lastError();
 
     if (!q.prepare(INSERT_AUTHOR_SQL))
         return q.lastError();
