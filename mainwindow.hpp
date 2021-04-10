@@ -6,6 +6,7 @@
 #include <QtSql>
 
 #include "init.hpp"
+#include "tableeditor.hpp"
 #include "bookdelegate.hpp"
 
 QT_BEGIN_NAMESPACE

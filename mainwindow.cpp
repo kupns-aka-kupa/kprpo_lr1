@@ -75,6 +75,9 @@ MainWindow::MainWindow(QWidget *parent)
             &QDataWidgetMapper::setCurrentModelIndex
     );
 
+    QWidget *authors = new TableEditor("authors", this);
+    _ui->tabWidget->addTab(authors, tr("Authors"));
+
     _ui->bookTable->setCurrentIndex(_model->index(0, 0));
     createMenuBar();
 }
