@@ -16,7 +16,7 @@ void addBook(QSqlQuery &q, const QString &title, int year, const QVariant &autho
     q.exec();
 }
 
-QVariant addGenre(QSqlQuery &q, const QString &name)
+QVariant addDict(QSqlQuery &q, const QString &name)
 {
     q.addBindValue(name);
     q.exec();
@@ -73,6 +73,10 @@ const auto GENRES_SQL = QLatin1String(R"(
     create table genres(id serial primary key, name varchar)
     )");
 
+const auto STATUSES_SQL = QLatin1String(R"(
+    create table statuses(id serial primary key, name varchar)
+    )");
+
 const auto INSERT_AUTHOR_SQL = QLatin1String(R"(
     insert into authors(name, birthdate) values(?, ?)
     )");
@@ -93,6 +97,10 @@ create table readers(
 
 const auto INSERT_GENRE_SQL = QLatin1String(R"(
     insert into genres(name) values(?)
+    )");
+
+const auto INSERT_STATUS_SQL = QLatin1String(R"(
+    insert into statuses(name) values(?)
     )");
 
 const auto INSERT_READER_SQL = QLatin1String(R"(
@@ -116,6 +124,9 @@ QSqlError initDb()
     QSqlQuery q;
     QStringList tables = db.tables();
     q.exec( "create extension if not exists \"uuid-ossp\";");
+
+    if(!tables.contains("statuses", Qt::CaseInsensitive)
+       && !q.exec(STATUSES_SQL)) return q.lastError();
 
     if(!tables.contains("genres", Qt::CaseInsensitive)
        && !q.exec(GENRES_SQL)) return q.lastError();
@@ -143,9 +154,15 @@ QSqlError initDb()
 
     if (!q.prepare(INSERT_GENRE_SQL))
         return q.lastError();
-    QVariant sfiction = addGenre(q, QLatin1String("Science Fiction"));
-    QVariant fiction = addGenre(q, QLatin1String("Fiction"));
-    QVariant fantasy = addGenre(q, QLatin1String("Fantasy"));
+    QVariant sfiction = addDict(q, QLatin1String("Science Fiction"));
+    QVariant fiction = addDict(q, QLatin1String("Fiction"));
+    QVariant fantasy = addDict(q, QLatin1String("Fantasy"));
+
+    if (!q.prepare(INSERT_STATUS_SQL))
+        return q.lastError();
+    addDict(q, QLatin1String("Busy"));
+    addDict(q, QLatin1String("Return"));
+    addDict(q, QLatin1String("Ready"));
 
     if (!q.prepare(INSERT_BOOK_SQL))
         return q.lastError();
