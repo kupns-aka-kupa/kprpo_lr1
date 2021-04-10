@@ -31,13 +31,42 @@ QVariant addAuthor(QSqlQuery &q, const QString &name, QDate birthdate)
     return q.lastInsertId();
 }
 
+QVariant addReader(
+        QSqlQuery &q,
+        const QString &name,
+        QDate birthdate,
+        const QString &phone,
+        const QString &email)
+{
+    q.addBindValue(name);
+    q.addBindValue(birthdate);
+    q.addBindValue(phone);
+    q.addBindValue(email);
+    q.exec();
+    return q.lastInsertId();
+}
+
 const auto BOOKS_SQL = QLatin1String(R"(
-    create table books(id serial primary key, title varchar, author integer,
-                       genre integer, year integer, rating integer)
+create table books(
+    id serial primary key,
+    title varchar,
+    author_id integer,
+    genre_id integer,
+    year integer,
+    rating integer,
+    CONSTRAINT fk_genre
+        FOREIGN KEY(genre_id)
+            REFERENCES genres(id),
+    CONSTRAINT fk_author
+        FOREIGN KEY(author_id)
+            REFERENCES authors(id));
     )");
 
 const auto AUTHORS_SQL =  QLatin1String(R"(
-    create table authors(id serial primary key, name varchar, birthdate date)
+create table authors(
+    id serial primary key,
+    name varchar,
+    birthdate date);
     )");
 
 const auto GENRES_SQL = QLatin1String(R"(
@@ -49,12 +78,25 @@ const auto INSERT_AUTHOR_SQL = QLatin1String(R"(
     )");
 
 const auto INSERT_BOOK_SQL = QLatin1String(R"(
-    insert into books(title, year, author, genre, rating)
+    insert into books(title, year, author_id, genre_id, rating)
                       values(?, ?, ?, ?, ?)
     )");
 
+const auto READERS_SQL = QLatin1String(R"(
+create table readers(
+    id serial primary key,
+    phone text,
+    email text,
+    name varchar,
+    birthdate date);
+   )");
+
 const auto INSERT_GENRE_SQL = QLatin1String(R"(
     insert into genres(name) values(?)
+    )");
+
+const auto INSERT_READER_SQL = QLatin1String(R"(
+    insert into readers(name, birthdate, phone, email) values(?, ?, ?, ?)
     )");
 
 const auto ConnectionString = QString("User ID=postgres;Password=postgres;Host=localhost;Port=5432;Database=\"%0\";")
@@ -75,20 +117,29 @@ QSqlError initDb()
     QStringList tables = db.tables();
     q.exec( "create extension if not exists \"uuid-ossp\";");
 
+    if(!tables.contains("genres", Qt::CaseInsensitive)
+       && !q.exec(GENRES_SQL)) return q.lastError();
+
+    if(!tables.contains("readers", Qt::CaseInsensitive)
+       && !q.exec(READERS_SQL)) return q.lastError();
+
+    if(!tables.contains("authors", Qt::CaseInsensitive)
+       && !q.exec(AUTHORS_SQL)) return q.lastError();
+
     if (!tables.contains("books", Qt::CaseInsensitive)
     && !q.exec(BOOKS_SQL)) return q.lastError();
-
-    if(!tables.contains("authors", Qt::CaseInsensitive)
-    && !q.exec(AUTHORS_SQL)) return q.lastError();
-
-    if(!tables.contains("authors", Qt::CaseInsensitive)
-    && !q.exec(GENRES_SQL)) return q.lastError();
 
     if (!q.prepare(INSERT_AUTHOR_SQL))
         return q.lastError();
     QVariant asimovId = addAuthor(q, QLatin1String("Isaac Asimov"), QDate(1920, 2, 1));
     QVariant greeneId = addAuthor(q, QLatin1String("Graham Greene"), QDate(1904, 10, 2));
     QVariant pratchettId = addAuthor(q, QLatin1String("Terry Pratchett"), QDate(1948, 4, 28));
+
+    if (!q.prepare(INSERT_READER_SQL))
+        return q.lastError();
+    addReader(q, QLatin1String("Tommy Haydn"), QDate(1988, 7, 7), QLatin1String("+1-202-555-0136 "), QLatin1String("qmahad.2g@opakenak.com"));
+    addReader(q, QLatin1String("Noah Madlyn"), QDate(2002, 7, 15), QLatin1String("+1-202-555-0162"), QLatin1String("3emam.al@miekering.buzz"));
+    addReader(q, QLatin1String("Xander Meaghan"), QDate(2005, 3, 28), QLatin1String("+1-202-555-0113"), QLatin1String("dlil.h010u@soundsgoodtomepromotions.com"));
 
     if (!q.prepare(INSERT_GENRE_SQL))
         return q.lastError();

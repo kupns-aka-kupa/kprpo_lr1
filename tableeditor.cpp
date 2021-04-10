@@ -2,15 +2,25 @@
 
 TableEditor::TableEditor(const QString &tableName, QWidget *parent)
         : QWidget(parent)
+        , _model(new QSqlTableModel(this))
 {
-    _model = new QSqlTableModel(this);
     _model->setTable(tableName);
     _model->setEditStrategy(QSqlTableModel::OnManualSubmit);
     _model->select();
 
-    _model->setHeaderData(0, Qt::Horizontal, tr("ID"));
-    _model->setHeaderData(1, Qt::Horizontal, tr("First name"));
-    _model->setHeaderData(2, Qt::Horizontal, tr("Last name"));
+    QSqlQuery q;
+    q.exec(QString(R"(
+    select column_name, ordinal_position
+      from information_schema.columns
+    where table_schema = 'public'
+      and table_name   = '%0';
+    )").arg(_model->tableName()));
+
+    while (q.next()) {
+        QString name = q.value(0).toString();
+        int section = q.value(1).toInt() - 1;
+        _model->setHeaderData(section, Qt::Horizontal, name);
+    }
 
     QTableView *view = new QTableView;
     view->setModel(_model);

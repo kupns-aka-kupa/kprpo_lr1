@@ -6,6 +6,8 @@
 #include <QTableView>
 #include <QMessageBox>
 #include <QSqlError>
+#include <QSqlQuery>
+#include <QDebug>
 #include <QSqlTableModel>
 #include <QPushButton>
 #include <QDialogButtonBox>

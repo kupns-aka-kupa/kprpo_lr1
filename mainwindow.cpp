@@ -24,8 +24,8 @@ MainWindow::MainWindow(QWidget *parent)
     _model->setEditStrategy(QSqlTableModel::OnManualSubmit);
     _model->setTable("books");
 
-    _authorIdx = _model->fieldIndex("author");
-    _genreIdx = _model->fieldIndex("genre");
+    _authorIdx = _model->fieldIndex("author_id");
+    _genreIdx = _model->fieldIndex("genre_id");
 
     _model->setRelation(_authorIdx, QSqlRelation("authors", "id", "name"));
     _model->setRelation(_genreIdx, QSqlRelation("genres", "id", "name"));
@@ -77,6 +77,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     QWidget *authors = new TableEditor("authors", this);
     _ui->tabWidget->addTab(authors, tr("Authors"));
+
+    QWidget *readers = new TableEditor("readers", this);
+    _ui->tabWidget->addTab(readers, tr("Readers"));
 
     _ui->bookTable->setCurrentIndex(_model->index(0, 0));
     createMenuBar();
