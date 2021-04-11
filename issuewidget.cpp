@@ -4,6 +4,7 @@
 IssueWidget::IssueWidget(QWidget *parent)
     : QGroupBox(parent)
     , _ui(new Ui::IssueWidget)
+    , _mapper(new QDataWidgetMapper(this))
 {
     _ui->setupUi(this);
     _model = new QSqlRelationalTableModel(_ui->issuesTable);
@@ -29,29 +30,31 @@ IssueWidget::IssueWidget(QWidget *parent)
     _ui->issuesTable->setColumnHidden(_model->fieldIndex("id"), true);
     _ui->issuesTable->setSelectionMode(QAbstractItemView::SingleSelection);
 
-    _ui->readerEdit->setModel(_model->relationModel(_bookIdx));
-    _ui->readerEdit->setModelColumn(
+    _ui->bookEdit->setModel(_model->relationModel(_bookIdx));
+    _ui->bookEdit->setModelColumn(
             _model->relationModel(_bookIdx)->fieldIndex("title"));
 
-    _ui->bookEdit->setModel(_model->relationModel(_readerIdx));
-    _ui->bookEdit->setModelColumn(
+    _ui->readerEdit->setModel(_model->relationModel(_readerIdx));
+    _ui->readerEdit->setModelColumn(
             _model->relationModel(_readerIdx)->fieldIndex("name"));
 
     _ui->issuesTable->horizontalHeader()->setSectionResizeMode(
             _model->fieldIndex("date"),
             QHeaderView::ResizeToContents);
 
-    QDataWidgetMapper *mapper = new QDataWidgetMapper(this);
-    mapper->setModel(_model);
-    mapper->addMapping(_ui->statusEdit, _model->fieldIndex("date"));
-    mapper->addMapping(_ui->bookEdit, _bookIdx);
-    mapper->addMapping(_ui->readerEdit, _readerIdx);
+    _mapper->setModel(_model);
+    _mapper->setItemDelegate(new QSqlRelationalDelegate(_ui->issuesTable));
+    _mapper->addMapping(_ui->dateEdit, _model->fieldIndex("date"));
+    _mapper->addMapping(_ui->bookEdit, _bookIdx);
+    _mapper->addMapping(_ui->readerEdit, _readerIdx);
 
     connect(_ui->issuesTable->selectionModel(),
             &QItemSelectionModel::currentRowChanged,
-            mapper,
+            _mapper,
             &QDataWidgetMapper::setCurrentModelIndex
     );
+    connect(_ui->addPushButton, &QPushButton::clicked, this, &IssueWidget::add);
+    connect(_ui->submitPushButton, &QPushButton::clicked, this, &IssueWidget::submit);
 
     _ui->issuesTable->setCurrentIndex(_model->index(0, 0));
 }
@@ -60,6 +63,34 @@ void IssueWidget::showError(const QSqlError &err)
 {
     QMessageBox::critical(this, "Unable to initialize Database",
                           "Error initializing database: " + err.text());
+}
+
+void IssueWidget::add()
+{
+    int row = _mapper->currentIndex();
+
+    if (_mapper->submit()) {
+        _model->insertRow(row);
+        _mapper->setCurrentIndex(row);
+    } else {
+        QMessageBox::warning(this, tr("Issues Table"),
+                             tr("The database reported an error: %1")
+                                     .arg(_model->lastError().text()));
+    }
+}
+
+void IssueWidget::submit()
+{
+    _model->database().transaction();
+    if (_model->submitAll()) {
+        _model->database().commit();
+        _ui->issuesTable->setCurrentIndex(_model->index(0, 0));
+    } else {
+        _model->database().rollback();
+        QMessageBox::warning(this, tr("Issues Table"),
+                             tr("The database reported an error: %1")
+                                     .arg(_model->lastError().text()));
+    }
 }
 
 IssueWidget::~IssueWidget()

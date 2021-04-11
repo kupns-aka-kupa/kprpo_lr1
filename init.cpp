@@ -109,9 +109,9 @@ create table readers(
 const auto ISSUES_SQL = QLatin1String(R"(
 create table issues(
     id serial primary key,
-    book_id integer,
-    reader_id integer,
-    date date,
+    book_id integer not null,
+    reader_id integer not null,
+    date date not null,
     constraint fk_book
         foreign key(book_id)
             references books(id),
