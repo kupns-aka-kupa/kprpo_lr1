@@ -42,6 +42,15 @@ QVariant addIssue(QSqlQuery &q, const QVariant &book_id,
     return q.lastInsertId();
 }
 
+QVariant addStatusHistory(QSqlQuery &q, const QVariant &book_id,
+                  const QVariant &status_id)
+{
+    q.addBindValue(book_id);
+    q.addBindValue(status_id);
+    q.exec();
+    return q.lastInsertId();
+}
+
 QVariant addReader(
         QSqlQuery &q,
         const QString &name,
@@ -90,6 +99,24 @@ const auto GENRES_SQL = QLatin1String(R"(
 
 const auto STATUSES_SQL = QLatin1String(R"(
     create table statuses(id serial primary key, name varchar)
+    )");
+
+const auto STATUSES_HISTORY_SQL = QLatin1String(R"(
+create table statuses_history(
+    id serial primary key,
+    status_id integer,
+    book_id integer,
+    date timestamp default now(),
+    CONSTRAINT fk_status
+        FOREIGN KEY(status_id)
+            REFERENCES statuses(id),
+    CONSTRAINT fk_book
+        FOREIGN KEY(book_id)
+            REFERENCES books(id));
+    )");
+
+const auto INSERT_STATUS_HISTORY_SQL = QLatin1String(R"(
+    insert into statuses_history(status_id, book_id) values(?, ?)
     )");
 
 const auto INSERT_AUTHOR_SQL = QLatin1String(R"(
@@ -195,6 +222,9 @@ QSqlError initDb()
     if(!tables.contains("issues", Qt::CaseInsensitive)
        && !q.exec(ISSUES_SQL)) return q.lastError();
 
+    if(!tables.contains("statuses_history", Qt::CaseInsensitive)
+       && !q.exec(STATUSES_HISTORY_SQL)) return q.lastError();
+
     if (!q.prepare(INSERT_AUTHOR_SQL))
         return q.lastError();
     QVariant asimovId = addAuthor(q, QLatin1String("Isaac Asimov"), QDate(1920, 2, 1));
@@ -215,9 +245,9 @@ QSqlError initDb()
 
     if (!q.prepare(INSERT_STATUS_SQL))
         return q.lastError();
-    addDict(q, QLatin1String("Busy"));
+    auto busyStatusId = addDict(q, QLatin1String("Busy"));
     addDict(q, QLatin1String("Return"));
-    addDict(q, QLatin1String("Ready"));
+    auto readyStatusId = addDict(q, QLatin1String("Ready"));
 
     if (!q.prepare(INSERT_BOOK_SQL))
         return q.lastError();
@@ -244,6 +274,11 @@ QSqlError initDb()
     addIssue(q, noahId, secondId, QDate::currentDate().addDays(-2));
 
     q.exec(TRIGGER);
+
+    if (!q.prepare(INSERT_STATUS_HISTORY_SQL))
+        return q.lastError();
+    addStatusHistory(q, busyStatusId, foundationId);
+    addStatusHistory(q, readyStatusId, foundationId);
 
     return QSqlError();
 }
