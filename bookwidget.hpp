@@ -5,8 +5,9 @@
 #include <QSqlError>
 #include <QMessageBox>
 #include <QtSql>
-
-#include "bookdelegate.hpp"
+#include <QModelIndex>
+#include <QSqlRelationalDelegate>
+#include <QDataWidgetMapper>
 
 namespace Ui {
 class BookWidget;
@@ -26,7 +27,7 @@ private:
 private:
     Ui::BookWidget *_ui;
     QSqlRelationalTableModel *_model;
-    int _authorIdx, _genreIdx;
+    int _authorIdx, _genreIdx, _statusIdx;
 };
 
 #endif // BOOK_WIDGET_HPP

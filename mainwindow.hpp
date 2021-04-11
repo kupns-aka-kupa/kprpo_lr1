@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 #include <QMessageBox>
+#include <QAction>
+#include <QMenuBar>
 #include <QtSql>
 
 #include "init.hpp"

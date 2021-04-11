@@ -63,8 +63,12 @@ create table books(
     title varchar,
     author_id integer,
     genre_id integer,
+    status_id integer not null default 3,
     year integer,
     rating integer,
+    constraint fk_status
+        foreign key(status_id)
+            references statuses(id),
     CONSTRAINT fk_genre
         FOREIGN KEY(genre_id)
             REFERENCES genres(id),

@@ -13,12 +13,15 @@ BookWidget::BookWidget(QWidget *parent)
 
     _authorIdx = _model->fieldIndex("author_id");
     _genreIdx = _model->fieldIndex("genre_id");
+    _statusIdx = _model->fieldIndex("status_id");
 
     _model->setRelation(_authorIdx, QSqlRelation("authors", "id", "name"));
     _model->setRelation(_genreIdx, QSqlRelation("genres", "id", "name"));
+    _model->setRelation(_statusIdx, QSqlRelation("statuses", "id", "name"));
 
     _model->setHeaderData(_authorIdx, Qt::Horizontal, tr("Author Name"));
     _model->setHeaderData(_genreIdx, Qt::Horizontal, tr("Genre"));
+    _model->setHeaderData(_statusIdx, Qt::Horizontal, tr("Status"));
     _model->setHeaderData(_model->fieldIndex("title"),
                           Qt::Horizontal, tr("Title"));
     _model->setHeaderData(_model->fieldIndex("year"), Qt::Horizontal, tr("Year"));
@@ -31,7 +34,6 @@ BookWidget::BookWidget(QWidget *parent)
     }
 
     _ui->bookTable->setModel(_model);
-    _ui->bookTable->setItemDelegate(new BookDelegate(_ui->bookTable));
     _ui->bookTable->setColumnHidden(_model->fieldIndex("id"), true);
     _ui->bookTable->setSelectionMode(QAbstractItemView::SingleSelection);
 
@@ -49,7 +51,6 @@ BookWidget::BookWidget(QWidget *parent)
 
     QDataWidgetMapper *mapper = new QDataWidgetMapper(this);
     mapper->setModel(_model);
-    mapper->setItemDelegate(new BookDelegate(this));
     mapper->addMapping(_ui->titleEdit, _model->fieldIndex("title"));
     mapper->addMapping(_ui->yearEdit, _model->fieldIndex("year"));
     mapper->addMapping(_ui->authorEdit, _authorIdx);
