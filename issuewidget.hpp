@@ -21,6 +21,7 @@ public:
 private slots:
     void add();
     void submit();
+    void closeIssue();
 
 private:
     void showError(const QSqlError &err);

@@ -10,6 +10,7 @@ IssueWidget::IssueWidget(QWidget *parent)
     _model = new QSqlRelationalTableModel(_ui->issuesTable);
     _model->setEditStrategy(QSqlTableModel::OnManualSubmit);
     _model->setTable("issues");
+    _model->setFilter("closed = false");
 
     _bookIdx = _model->fieldIndex("book_id");
     _readerIdx = _model->fieldIndex("reader_id");
@@ -28,6 +29,7 @@ IssueWidget::IssueWidget(QWidget *parent)
 
     _ui->issuesTable->setModel(_model);
     _ui->issuesTable->setColumnHidden(_model->fieldIndex("id"), true);
+    _ui->issuesTable->setColumnHidden(_model->fieldIndex("closed"), true);
     _ui->issuesTable->setSelectionMode(QAbstractItemView::SingleSelection);
 
     _ui->bookEdit->setModel(_model->relationModel(_bookIdx));
@@ -54,6 +56,7 @@ IssueWidget::IssueWidget(QWidget *parent)
             &QDataWidgetMapper::setCurrentModelIndex
     );
     connect(_ui->addPushButton, &QPushButton::clicked, this, &IssueWidget::add);
+    connect(_ui->closeIssuePushButton, &QPushButton::clicked, this, &IssueWidget::closeIssue);
     connect(_ui->submitPushButton, &QPushButton::clicked, this, &IssueWidget::submit);
 
     _ui->issuesTable->setCurrentIndex(_model->index(0, 0));
@@ -76,6 +79,45 @@ void IssueWidget::add()
         QMessageBox::warning(this, tr("Issues Table"),
                              tr("The database reported an error: %1")
                                      .arg(_model->lastError().text()));
+    }
+}
+
+const auto UPDATE_STATUS_SQL = QLatin1String(R"(
+update books set status_id = ? where id = ?;
+    )");
+
+void updateStatus(QSqlQuery &q, const QVariant &status_id, const QVariant &id)
+{
+    q.addBindValue(status_id);
+    q.addBindValue(id);
+    q.exec();
+}
+
+void IssueWidget::closeIssue()
+{
+    int row = _mapper->currentIndex();
+
+    auto record = _model->record(row);
+    auto status_id = 3;
+    auto book_id = record.value("book_id");
+
+    QSqlQuery q;
+    if (q.prepare(UPDATE_STATUS_SQL))
+        updateStatus(q, status_id, book_id);
+
+    record.setValue("closed", true);
+    _model->setRecord(row, record);
+    if (q.lastError().type() != QSqlError::NoError) {
+        QMessageBox::warning(this, tr("Issues Table"),
+                             tr("The database reported an error: %1")
+                                     .arg(_model->lastError().text()));
+    }
+
+    submit();
+
+    if (!_model->select()) {
+        showError(_model->lastError());
+        return;
     }
 }
 

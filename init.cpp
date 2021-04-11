@@ -63,7 +63,7 @@ create table books(
     title varchar,
     author_id integer,
     genre_id integer,
-    status_id integer not null default 3,
+    status_id integer not null default 2,
     year integer,
     rating integer,
     constraint fk_status
@@ -116,6 +116,7 @@ create table issues(
     book_id integer not null,
     reader_id integer not null,
     date date not null,
+    closed boolean not null default false,
     constraint fk_book
         foreign key(book_id)
             references books(id),
