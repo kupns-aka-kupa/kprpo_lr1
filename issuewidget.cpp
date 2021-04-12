@@ -32,6 +32,8 @@ IssueWidget::IssueWidget(QWidget *parent)
     _ui->issuesTable->setColumnHidden(_model->fieldIndex("closed"), true);
     _ui->issuesTable->setSelectionMode(QAbstractItemView::SingleSelection);
 
+    _ui->dateEdit->setMinimumDate(QDate::currentDate());
+
     _ui->bookEdit->setModel(_model->relationModel(_bookIdx));
     _ui->bookEdit->setModelColumn(
             _model->relationModel(_bookIdx)->fieldIndex("title"));

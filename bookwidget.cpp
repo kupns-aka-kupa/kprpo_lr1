@@ -6,7 +6,7 @@ BookWidget::BookWidget(QWidget *parent)
     , _ui(new Ui::BookWidget)
     , _timer(new QTimer(this))
 {
-    _timer->start(1000 * 5);
+    _timer->start(1000 * 60);
     connect(_timer, &QTimer::timeout, this, &BookWidget::update);
 
     _ui->setupUi(this);
@@ -81,7 +81,9 @@ void BookWidget::reload()
 void BookWidget::update()
 {
     QSqlQuery q;
-    q.exec("update books set status_id = 2 where id = any(select book_id FROM issues WHERE date <= now());");
+    q.exec(R"(update books set status_id = 2
+                where id = any(select book_id FROM issues WHERE closed = false and date <= now());)");
+    reload();
 }
 
 BookWidget::~BookWidget()

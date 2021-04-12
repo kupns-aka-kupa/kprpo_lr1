@@ -141,6 +141,24 @@ const auto INSERT_READER_SQL = QLatin1String(R"(
     insert into readers(name, birthdate, phone, email) values(?, ?, ?, ?)
     )");
 
+const auto TRIGGER = QLatin1String(R"(
+CREATE OR REPLACE FUNCTION on_issues_create() RETURNS TRIGGER AS
+$BODY$
+BEGIN
+    update books set status_id = 1 where id = new.book_id;
+    return new;
+END;
+$BODY$
+    language plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_issue_create
+    ON issues;
+CREATE TRIGGER trigger_issue_create
+    AFTER INSERT ON issues
+    FOR EACH ROW
+EXECUTE PROCEDURE on_issues_create();
+)");
+
 const auto ConnectionString = QString("User ID=postgres;Password=postgres;Host=localhost;Port=5432;Database=\"%0\";")
         .arg(PROJECT_NAME);
 
@@ -186,7 +204,7 @@ QSqlError initDb()
     if (!q.prepare(INSERT_READER_SQL))
         return q.lastError();
     auto tommyId = addReader(q, QLatin1String("Tommy Haydn"), QDate(1988, 7, 7), QLatin1String("+1-202-555-0136 "), QLatin1String("qmahad.2g@opakenak.com"));
-    addReader(q, QLatin1String("Noah Madlyn"), QDate(2002, 7, 15), QLatin1String("+1-202-555-0162"), QLatin1String("3emam.al@miekering.buzz"));
+    auto noahId = addReader(q, QLatin1String("Noah Madlyn"), QDate(2002, 7, 15), QLatin1String("+1-202-555-0162"), QLatin1String("3emam.al@miekering.buzz"));
     addReader(q, QLatin1String("Xander Meaghan"), QDate(2005, 3, 28), QLatin1String("+1-202-555-0113"), QLatin1String("dlil.h010u@soundsgoodtomepromotions.com"));
 
     if (!q.prepare(INSERT_GENRE_SQL))
@@ -203,9 +221,9 @@ QSqlError initDb()
 
     if (!q.prepare(INSERT_BOOK_SQL))
         return q.lastError();
-    auto foundationId = addBook(q, QLatin1String("Foundation"), 1951, asimovId, sfiction, 3);
+    auto foundationId = addBook(q, QLatin1String("Foundation"), 1951, asimovId, sfiction, 1);
     addBook(q, QLatin1String("Foundation and Empire"), 1952, asimovId, sfiction, 4);
-    addBook(q, QLatin1String("Second Foundation"), 1953, asimovId, sfiction, 3);
+    auto secondId = addBook(q, QLatin1String("Second Foundation"), 1953, asimovId, sfiction, 1);
     addBook(q, QLatin1String("Foundation's Edge"), 1982, asimovId, sfiction, 3);
     addBook(q, QLatin1String("Foundation and Earth"), 1986, asimovId, sfiction, 4);
     addBook(q, QLatin1String("Prelude to Foundation"), 1988, asimovId, sfiction, 3);
@@ -220,6 +238,12 @@ QSqlError initDb()
     if (!q.prepare(INSERT_ISSUE_SQL))
         return q.lastError();
     addIssue(q, tommyId, foundationId, QDate::currentDate());
+
+    if (!q.prepare(INSERT_ISSUE_SQL))
+        return q.lastError();
+    addIssue(q, noahId, secondId, QDate::currentDate().addDays(-2));
+
+    q.exec(TRIGGER);
 
     return QSqlError();
 }
