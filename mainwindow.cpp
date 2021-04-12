@@ -23,8 +23,9 @@ MainWindow::MainWindow(QWidget *parent)
     QWidget *issues = new IssueWidget(this);
     _ui->tabWidget->addTab(issues, tr("Issues"));
 
-    QWidget *books = new BookWidget(this);
-    _ui->tabWidget->addTab(books, tr("Books"));
+    _books = new BookWidget(this);
+    _ui->tabWidget->addTab(_books, tr("Books"));
+    _booksIndex = _ui->tabWidget->indexOf(_books);
 
     QWidget *authors = new TableEditor("authors", this);
     _ui->tabWidget->addTab(authors, tr("Authors"));
@@ -32,6 +33,7 @@ MainWindow::MainWindow(QWidget *parent)
     QWidget *readers = new TableEditor("readers", this);
     _ui->tabWidget->addTab(readers, tr("Readers"));
 
+    connect(_ui->tabWidget, &QTabWidget::currentChanged, this, &MainWindow::tabChanged);
     createMenuBar();
 }
 
@@ -39,6 +41,11 @@ void MainWindow::showError(const QSqlError &err)
 {
     QMessageBox::critical(this, "Unable to initialize Database",
                           "Error initializing database: " + err.text());
+}
+
+void MainWindow::tabChanged(int index)
+{
+    if (index == _booksIndex) _books->reload();
 }
 
 void MainWindow::createMenuBar()

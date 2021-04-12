@@ -20,6 +20,11 @@ class BookWidget : public QGroupBox
 public:
     explicit BookWidget(QWidget *parent = nullptr);
     ~BookWidget();
+public:
+    void reload();
+
+private slots:
+    void update();
 
 private:
     void showError(const QSqlError &err);
@@ -27,6 +32,7 @@ private:
 private:
     Ui::BookWidget *_ui;
     QSqlRelationalTableModel *_model;
+    QTimer *_timer;
     int _authorIdx, _genreIdx, _statusIdx;
 };
 

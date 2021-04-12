@@ -73,17 +73,15 @@ void IssueWidget::add()
     int row = _mapper->currentIndex();
 
     if (_mapper->submit()) {
-        _model->insertRow(row);
+        _model->insertRecord(row, _model->record(row));
         _mapper->setCurrentIndex(row);
     } else {
-        QMessageBox::warning(this, tr("Issues Table"),
-                             tr("The database reported an error: %1")
-                                     .arg(_model->lastError().text()));
+        _model->insertRow(0);
     }
 }
 
 const auto UPDATE_STATUS_SQL = QLatin1String(R"(
-update books set status_id = ? where id = ?;
+update books set status_id = ? where title = ?;
     )");
 
 void updateStatus(QSqlQuery &q, const QVariant &status_id, const QVariant &id)
@@ -99,7 +97,7 @@ void IssueWidget::closeIssue()
 
     auto record = _model->record(row);
     auto status_id = 3;
-    auto book_id = record.value("book_id");
+    auto book_id = record.value(_bookIdx);
 
     QSqlQuery q;
     if (q.prepare(UPDATE_STATUS_SQL))
@@ -119,6 +117,7 @@ void IssueWidget::closeIssue()
         showError(_model->lastError());
         return;
     }
+    _ui->issuesTable->setCurrentIndex(_model->index(0, 0));
 }
 
 void IssueWidget::submit()

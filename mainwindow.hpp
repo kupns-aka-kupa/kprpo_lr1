@@ -28,7 +28,12 @@ private:
     Ui::MainWindow *_ui;
 
 private slots:
+    void tabChanged(int index);
     void about();
+
+private:
+    int _booksIndex;
+    BookWidget *_books;
 
 private:
     void showError(const QSqlError &err);

@@ -63,7 +63,7 @@ create table books(
     title varchar,
     author_id integer,
     genre_id integer,
-    status_id integer not null default 2,
+    status_id integer not null default 3,
     year integer,
     rating integer,
     constraint fk_status

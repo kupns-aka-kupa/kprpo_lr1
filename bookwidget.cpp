@@ -4,7 +4,11 @@
 BookWidget::BookWidget(QWidget *parent)
     : QGroupBox(parent)
     , _ui(new Ui::BookWidget)
+    , _timer(new QTimer(this))
 {
+    _timer->start(1000 * 5);
+    connect(_timer, &QTimer::timeout, this, &BookWidget::update);
+
     _ui->setupUi(this);
 
     _model = new QSqlRelationalTableModel(_ui->bookTable);
@@ -28,10 +32,7 @@ BookWidget::BookWidget(QWidget *parent)
     _model->setHeaderData(_model->fieldIndex("rating"),
                           Qt::Horizontal, tr("Rating"));
 
-    if (!_model->select()) {
-        showError(_model->lastError());
-        return;
-    }
+    reload();
 
     _ui->bookTable->setModel(_model);
     _ui->bookTable->setColumnHidden(_model->fieldIndex("id"), true);
@@ -63,12 +64,24 @@ BookWidget::BookWidget(QWidget *parent)
             &QDataWidgetMapper::setCurrentModelIndex
     );
     _ui->bookTable->setCurrentIndex(_model->index(0, 0));
+
 }
 
 void BookWidget::showError(const QSqlError &err)
 {
     QMessageBox::critical(this, "Unable to initialize Database",
                           "Error initializing database: " + err.text());
+}
+
+void BookWidget::reload()
+{
+    if (!_model->select()) showError(_model->lastError());
+}
+
+void BookWidget::update()
+{
+    QSqlQuery q;
+    q.exec("update books set status_id = 2 where id = any(select book_id FROM issues WHERE date <= now());");
 }
 
 BookWidget::~BookWidget()
