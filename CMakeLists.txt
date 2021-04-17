@@ -32,7 +32,10 @@ else()
     add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
 endif()
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE PROJECT_NAME="${PROJECT_NAME}")
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+        PROJECT_NAME="${PROJECT_NAME}"
+        MIGRATIONS_DIR="${PROJECT_SOURCE_DIR}/migrations")
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
         Qt${QT_VERSION_MAJOR}::Widgets
         Qt${QT_VERSION_MAJOR}::Core

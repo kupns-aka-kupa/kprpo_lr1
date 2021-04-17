@@ -5,162 +5,14 @@ QLatin1String operator""_QL(const char *p, size_t s)
     return QLatin1String(p, s);
 }
 
-QVariant addBook(QSqlQuery &q, const QString &title, int year, const QVariant &authorId,
-             const QVariant &genreId, int rating)
-{
-    q.addBindValue(title);
-    q.addBindValue(year);
-    q.addBindValue(authorId);
-    q.addBindValue(genreId);
-    q.addBindValue(rating);
-    q.exec();
-    return q.lastInsertId();
-}
-
-QVariant addDict(QSqlQuery &q, const QString &name)
-{
-    q.addBindValue(name);
-    q.exec();
-    return q.lastInsertId();
-}
-
-QVariant addAuthor(QSqlQuery &q, const QString &name, QDate birthdate)
-{
-    q.addBindValue(name);
-    q.addBindValue(birthdate);
-    q.exec();
-    return q.lastInsertId();
-}
-
-QVariant addIssue(QSqlQuery &q, const QVariant &book_id,
-                  const QVariant &reader_id, QDate birthdate)
-{
-    q.addBindValue(reader_id);
-    q.addBindValue(book_id);
-    q.addBindValue(birthdate);
-    q.exec();
-    return q.lastInsertId();
-}
-
-QVariant addReader(
-        QSqlQuery &q,
-        const QString &name,
-        QDate birthdate,
-        const QString &phone,
-        const QString &email)
-{
-    q.addBindValue(name);
-    q.addBindValue(birthdate);
-    q.addBindValue(phone);
-    q.addBindValue(email);
-    q.exec();
-    return q.lastInsertId();
-}
-
-const auto BOOKS_SQL = QLatin1String(R"(
-create table books(
-    id serial primary key,
-    title varchar,
-    author_id integer,
-    genre_id integer,
-    status_id integer not null default 3,
-    year integer,
-    rating integer,
-    constraint fk_status
-        foreign key(status_id)
-            references statuses(id),
-    CONSTRAINT fk_genre
-        FOREIGN KEY(genre_id)
-            REFERENCES genres(id),
-    CONSTRAINT fk_author
-        FOREIGN KEY(author_id)
-            REFERENCES authors(id));
-    )");
-
-const auto AUTHORS_SQL =  QLatin1String(R"(
-create table authors(
-    id serial primary key,
-    name varchar,
-    birthdate date);
-    )");
-
-const auto GENRES_SQL = QLatin1String(R"(
-    create table genres(id serial primary key, name varchar)
-    )");
-
-const auto STATUSES_SQL = QLatin1String(R"(
-    create table statuses(id serial primary key, name varchar)
-    )");
-
-const auto INSERT_AUTHOR_SQL = QLatin1String(R"(
-    insert into authors(name, birthdate) values(?, ?)
-    )");
-
-const auto INSERT_BOOK_SQL = QLatin1String(R"(
-    insert into books(title, year, author_id, genre_id, rating)
-                      values(?, ?, ?, ?, ?)
-    )");
-
-const auto READERS_SQL = QLatin1String(R"(
-create table readers(
-    id serial primary key,
-    phone text,
-    email text,
-    name varchar,
-    birthdate date);
+const auto MIGRATIONS_SQL = QLatin1String(R"(
+create table migrations(id text primary key);
    )");
-
-const auto ISSUES_SQL = QLatin1String(R"(
-create table issues(
-    id serial primary key,
-    book_id integer not null,
-    reader_id integer not null,
-    date date not null,
-    closed boolean not null default false,
-    constraint fk_book
-        foreign key(book_id)
-            references books(id),
-    constraint fk_reader
-        foreign key(reader_id)
-            references readers(id));
-   )");
-
-const auto INSERT_GENRE_SQL = QLatin1String(R"(
-    insert into genres(name) values(?)
-    )");
-
-const auto INSERT_ISSUE_SQL = QLatin1String(R"(
-    insert into issues(book_id, reader_id, date) values(?, ?, ?)
-    )");
-
-const auto INSERT_STATUS_SQL = QLatin1String(R"(
-    insert into statuses(name) values(?)
-    )");
-
-const auto INSERT_READER_SQL = QLatin1String(R"(
-    insert into readers(name, birthdate, phone, email) values(?, ?, ?, ?)
-    )");
-
-const auto TRIGGER = QLatin1String(R"(
-CREATE OR REPLACE FUNCTION on_issues_create() RETURNS TRIGGER AS
-$BODY$
-BEGIN
-    update books set status_id = 1 where id = new.book_id;
-    return new;
-END;
-$BODY$
-    language plpgsql;
-
-DROP TRIGGER IF EXISTS trigger_issue_create
-    ON issues;
-CREATE TRIGGER trigger_issue_create
-    AFTER INSERT ON issues
-    FOR EACH ROW
-EXECUTE PROCEDURE on_issues_create();
-)");
 
 const auto ConnectionString = QString("User ID=postgres;Password=postgres;Host=localhost;Port=5432;Database=\"%0\";")
         .arg(PROJECT_NAME);
+
+const auto migrationsTable = QString("migrations");
 
 QSqlError initDb()
 {
@@ -175,75 +27,32 @@ QSqlError initDb()
 
     QSqlQuery q;
     QStringList tables = db.tables();
-    q.exec( "create extension if not exists \"uuid-ossp\";");
 
-    if(!tables.contains("statuses", Qt::CaseInsensitive)
-       && !q.exec(STATUSES_SQL)) return q.lastError();
+    if(!tables.contains(migrationsTable, Qt::CaseInsensitive)
+       && !q.exec(MIGRATIONS_SQL)) return q.lastError();
 
-    if(!tables.contains("genres", Qt::CaseInsensitive)
-       && !q.exec(GENRES_SQL)) return q.lastError();
+    auto model = QSqlTableModel();
+    model.setTable(migrationsTable);
+    model.select();
 
-    if(!tables.contains("readers", Qt::CaseInsensitive)
-       && !q.exec(READERS_SQL)) return q.lastError();
+    QDirIterator it(MIGRATIONS_DIR, {"*.sql"}, QDir::Files);
 
-    if(!tables.contains("authors", Qt::CaseInsensitive)
-       && !q.exec(AUTHORS_SQL)) return q.lastError();
+    for(int i = 0; it.hasNext(); i++)
+    {
+        auto next = it.next();
+        if(model.record(i).value("id").toString() == QFileInfo(next).baseName()) continue;
 
-    if (!tables.contains("books", Qt::CaseInsensitive)
-    && !q.exec(BOOKS_SQL)) return q.lastError();
+        QFile f(next);
+        QTextStream in(&f);
 
-    if(!tables.contains("issues", Qt::CaseInsensitive)
-       && !q.exec(ISSUES_SQL)) return q.lastError();
+        if (!f.open(QFile::ReadOnly | QIODevice::Text)) break;
+        if(!q.exec(in.readAll().simplified())) break;
 
-    if (!q.prepare(INSERT_AUTHOR_SQL))
-        return q.lastError();
-    QVariant asimovId = addAuthor(q, QLatin1String("Isaac Asimov"), QDate(1920, 2, 1));
-    QVariant greeneId = addAuthor(q, QLatin1String("Graham Greene"), QDate(1904, 10, 2));
-    QVariant pratchettId = addAuthor(q, QLatin1String("Terry Pratchett"), QDate(1948, 4, 28));
+        QSqlRecord record = model.record();
+        record.setValue("id", QFileInfo(f.fileName()).baseName());
+        model.insertRecord(-1, record);
+    }
 
-    if (!q.prepare(INSERT_READER_SQL))
-        return q.lastError();
-    auto tommyId = addReader(q, QLatin1String("Tommy Haydn"), QDate(1988, 7, 7), QLatin1String("+1-202-555-0136 "), QLatin1String("qmahad.2g@opakenak.com"));
-    auto noahId = addReader(q, QLatin1String("Noah Madlyn"), QDate(2002, 7, 15), QLatin1String("+1-202-555-0162"), QLatin1String("3emam.al@miekering.buzz"));
-    addReader(q, QLatin1String("Xander Meaghan"), QDate(2005, 3, 28), QLatin1String("+1-202-555-0113"), QLatin1String("dlil.h010u@soundsgoodtomepromotions.com"));
-
-    if (!q.prepare(INSERT_GENRE_SQL))
-        return q.lastError();
-    QVariant sfiction = addDict(q, QLatin1String("Science Fiction"));
-    QVariant fiction = addDict(q, QLatin1String("Fiction"));
-    QVariant fantasy = addDict(q, QLatin1String("Fantasy"));
-
-    if (!q.prepare(INSERT_STATUS_SQL))
-        return q.lastError();
-    addDict(q, QLatin1String("Busy"));
-    addDict(q, QLatin1String("Return"));
-    addDict(q, QLatin1String("Ready"));
-
-    if (!q.prepare(INSERT_BOOK_SQL))
-        return q.lastError();
-    auto foundationId = addBook(q, QLatin1String("Foundation"), 1951, asimovId, sfiction, 1);
-    addBook(q, QLatin1String("Foundation and Empire"), 1952, asimovId, sfiction, 4);
-    auto secondId = addBook(q, QLatin1String("Second Foundation"), 1953, asimovId, sfiction, 1);
-    addBook(q, QLatin1String("Foundation's Edge"), 1982, asimovId, sfiction, 3);
-    addBook(q, QLatin1String("Foundation and Earth"), 1986, asimovId, sfiction, 4);
-    addBook(q, QLatin1String("Prelude to Foundation"), 1988, asimovId, sfiction, 3);
-    addBook(q, QLatin1String("Forward the Foundation"), 1993, asimovId, sfiction, 3);
-    addBook(q, QLatin1String("The Power and the Glory"), 1940, greeneId, fiction, 4);
-    addBook(q, QLatin1String("The Third Man"), 1950, greeneId, fiction, 5);
-    addBook(q, QLatin1String("Our Man in Havana"), 1958, greeneId, fiction, 4);
-    addBook(q, QLatin1String("Guards! Guards!"), 1989, pratchettId, fantasy, 3);
-    addBook(q, QLatin1String("Night Watch"), 2002, pratchettId, fantasy, 3);
-    addBook(q, QLatin1String("Going Postal"), 2004, pratchettId, fantasy, 3);
-
-    if (!q.prepare(INSERT_ISSUE_SQL))
-        return q.lastError();
-    addIssue(q, tommyId, foundationId, QDate::currentDate());
-
-    if (!q.prepare(INSERT_ISSUE_SQL))
-        return q.lastError();
-    addIssue(q, noahId, secondId, QDate::currentDate().addDays(-2));
-
-    q.exec(TRIGGER);
-
-    return QSqlError();
+    model.submitAll();
+    return q.lastError();
 }
