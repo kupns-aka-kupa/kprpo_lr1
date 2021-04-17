@@ -5,6 +5,14 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , _ui(new Ui::MainWindow)
 {
+    QSqlDatabase db = QSqlDatabase::addDatabase("QPSQL");
+    db.setHostName("localhost");
+    db.setDatabaseName(PROJECT_NAME);
+    db.setUserName("postgres");
+    db.setPassword("postgres");
+
+    if (!db.open()) return;
+
     _ui->setupUi(this);
 
     if (!QSqlDatabase::drivers().contains("QSQLITE"))
@@ -14,26 +22,16 @@ MainWindow::MainWindow(QWidget *parent)
                 "This demo needs the SQLITE driver"
         );
 
-    QSqlError err = initDb();
+    QSqlError err = initDb(db);
     if (err.type() != QSqlError::NoError) {
         showError(err);
         return;
     }
-
-    QWidget *issues = new IssueWidget(this);
-    _ui->tabWidget->addTab(issues, tr("Issues"));
-
-    _books = new BookWidget(this);
-    _ui->tabWidget->addTab(_books, tr("Books"));
-    _booksIndex = _ui->tabWidget->indexOf(_books);
-
-    QWidget *authors = new TableEditor("authors", this);
-    _ui->tabWidget->addTab(authors, tr("Authors"));
-
-    QWidget *readers = new TableEditor("readers", this);
-    _ui->tabWidget->addTab(readers, tr("Readers"));
+    _login = new LoginWidget(this);
+    _ui->vboxLayout->addWidget(_login);
 
     connect(_ui->tabWidget, &QTabWidget::currentChanged, this, &MainWindow::tabChanged);
+    connect(_login, &LoginWidget::verified, this, &MainWindow::load);
     createMenuBar();
 }
 
@@ -46,6 +44,23 @@ void MainWindow::showError(const QSqlError &err)
 void MainWindow::tabChanged(int index)
 {
     if (index == _booksIndex) _books->reload();
+}
+
+void MainWindow::load()
+{
+    QWidget *issues = new IssueWidget(this);
+    _ui->tabWidget->addTab(issues, tr("Issues"));
+
+    _books = new BookWidget(this);
+    _ui->tabWidget->addTab(_books, tr("Books"));
+    _booksIndex = _ui->tabWidget->indexOf(_books);
+
+    QWidget *authors = new TableEditor("authors", this);
+    _ui->tabWidget->addTab(authors, tr("Authors"));
+
+    QWidget *readers = new TableEditor("readers", this);
+    _ui->tabWidget->addTab(readers, tr("Readers"));
+    _login->hide();
 }
 
 void MainWindow::createMenuBar()

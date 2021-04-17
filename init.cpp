@@ -14,17 +14,8 @@ const auto ConnectionString = QString("User ID=postgres;Password=postgres;Host=l
 
 const auto migrationsTable = QString("migrations");
 
-QSqlError initDb()
+QSqlError initDb(const QSqlDatabase &db)
 {
-    QSqlDatabase db = QSqlDatabase::addDatabase("QPSQL");
-    db.setHostName("localhost");
-    db.setDatabaseName(PROJECT_NAME);
-    db.setUserName("postgres");
-    db.setPassword("postgres");
-
-    if (!db.open())
-        return db.lastError();
-
     QSqlQuery q;
     QStringList tables = db.tables();
 

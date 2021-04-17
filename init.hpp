@@ -4,6 +4,6 @@
 #include <QFileInfo>
 #include <QSqlDriver>
 
-QSqlError initDb();
+QSqlError initDb(const QSqlDatabase &);
 
 #endif //INIT_HPP

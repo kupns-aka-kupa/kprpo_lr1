@@ -9,6 +9,7 @@
 
 #include "init.hpp"
 #include "bookwidget.hpp"
+#include "loginwidget.hpp"
 #include "issuewidget.hpp"
 #include "tableeditor.hpp"
 
@@ -29,11 +30,13 @@ private:
 
 private slots:
     void tabChanged(int index);
+    void load();
     void about();
 
 private:
     int _booksIndex;
     BookWidget *_books;
+    LoginWidget *_login;
 
 private:
     void showError(const QSqlError &err);
