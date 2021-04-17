@@ -1,8 +1,8 @@
 create extension if not exists pgcrypto;
 
 create table operators(
-    verified text primary key,
+    login text primary key,
     password text);
 
-insert into operators (verified, password) values ('operator', crypt('Q12345q', '$1$w0EJdcPo'));
+insert into operators (login, password) values ('operator', crypt('Q12345q', '$1$w0EJdcPo'));
 
